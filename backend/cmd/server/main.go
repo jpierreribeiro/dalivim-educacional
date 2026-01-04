@@ -1,40 +1,62 @@
 package main
 
 import (
-	"time"
+	"log"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"dalivim/internal/config"
+	"dalivim/internal/database"
+	handler "dalivim/internal/handlers"
+	"dalivim/internal/repository"
+	"dalivim/internal/router"
+	"dalivim/internal/service"
 )
 
-var db *gorm.DB
-
 func main() {
-	// Initialize database
-	var err error
-	dsn := "host=localhost user=postgres password=postgres dbname=dalivim port=5432 sslmode=disable"
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Load configuration
+	cfg := config.Load()
+
+	// Connect to database
+	db, err := database.Connect(cfg.Database)
 	if err != nil {
-		panic("failed to connect database")
+		log.Fatal(err)
 	}
 
-	// Auto migrate models
-	db.AutoMigrate(&User{}, &Activity{}, &Submission{}, &TelemetryData{})
+	// Migrate database
+	if err := database.Migrate(db); err != nil {
+		log.Fatal(err)
+	}
 
-	// Setup Gin
-	r := gin.Default()
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(db)
+	activityRepo := repository.NewActivityRepository(db)
+	submissionRepo := repository.NewSubmissionRepository(db)
+	telemetryRepo := repository.NewTelemetryRepository(db)
 
-	// CORS
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	// Initialize services
+	authService := service.NewAuthService(userRepo)
+	activityService := service.NewActivityService(activityRepo, userRepo)
+	analysisService := service.NewAnalysisService()
+	telemetryService := service.NewTelemetryService(
+		telemetryRepo,
+		submissionRepo,
+		userRepo,
+		analysisService,
+	)
 
-	r.Run(":8080")
+	// Initialize handlers
+	authHandler := handler.NewAuthHandler(authService)
+	activityHandler := handler.NewActivityHandler(activityService)
+	telemetryHandler := handler.NewTelemetryHandler(telemetryService)
+
+	// Setup router
+	r := router.NewRouter(authHandler, activityHandler, telemetryHandler)
+	engine := r.Setup()
+
+	// Start server
+	addr := cfg.Server.Host + ":" + cfg.Server.Port
+	log.Printf("🚀 Server starting on %s", addr)
+
+	if err := engine.Run(addr); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
 }

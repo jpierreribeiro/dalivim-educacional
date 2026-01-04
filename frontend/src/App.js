@@ -1,21 +1,18 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom'; // Importe isto
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ProfessorDashboard from './ProfessorDashboard';
+import StudentActivity from './StudentActivity';
+import ActivityDetails from './ActivityDetails';
 import CodeEditor from './CodeEditor';
-
-// Se quiser importar os outros também para testar rotas futuras:
-// import StudentActivity from './StudentActivity';
-// import CodeEditor from './CodeEditor';
 
 function App() {
   return (
-    // O BrowserRouter deve ser o pai de todos que usam navegação
     <BrowserRouter>
       <Routes>
-        {/* Define que o dashboard é a página inicial (/) */}
-        <Route path="/" element={<CodeEditor />} />
-        
-        {/* Se quiser adicionar as outras páginas depois: */}
-        {/* <Route path="/student" element={<StudentActivity />} /> */}
+        <Route path="/" element={<ProfessorDashboard />} />
+        <Route path="/activity/:inviteToken" element={<StudentActivity />} />
+        <Route path="/professor/activity/:activityId" element={<ActivityDetails />} />
+        <Route path="/editor" element={<CodeEditor activityId={1} studentId={1} />} />
       </Routes>
     </BrowserRouter>
   );

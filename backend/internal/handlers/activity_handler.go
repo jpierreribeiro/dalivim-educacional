@@ -1,67 +1,68 @@
-package handlers
+package handler
 
 import (
 	"net/http"
+	"strconv"
+
+	"dalivim/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-func createActivity(c *gin.Context) {
-	userID := c.GetUint("userID")
+type ActivityHandler struct {
+	activityService service.ActivityService
+}
 
-	var req Activity
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+func NewActivityHandler(activityService service.ActivityService) *ActivityHandler {
+	return &ActivityHandler{activityService: activityService}
+}
+
+type CreateActivityRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	Language    string `json:"language" binding:"required"`
+	TimeLimit   int    `json:"timeLimit" binding:"required,min=1"`
+}
+
+func (h *ActivityHandler) Create(c *gin.Context) {
+	var req CreateActivityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	activity := Activity{
-		ProfessorID: userID,
-		Title:       req.Title,
-		Description: req.Description,
-		Language:    req.Language,
-		TimeLimit:   req.TimeLimit,
-		InviteToken: generateInviteToken(),
-	}
+	userID := c.GetUint("userID")
 
-	if err := db.Create(&activity).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create activity"})
+	activity, err := h.activityService.Create(userID, req.Title, req.Description, req.Language, req.TimeLimit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, activity)
 }
 
-func getActivities(c *gin.Context) {
+func (h *ActivityHandler) GetAll(c *gin.Context) {
 	userID := c.GetUint("userID")
 
-	var activities []Activity
-	db.Where("professor_id = ?", userID).Find(&activities)
-
-	// Add submission count
-	type ActivityWithCount struct {
-		Activity
-		SubmissionCount int64 `json:"submissionCount"`
+	activities, err := h.activityService.GetByProfessorID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	var result []ActivityWithCount
-	for _, activity := range activities {
-		var count int64
-		db.Model(&Submission{}).Where("activity_id = ?", activity.ID).Count(&count)
-		result = append(result, ActivityWithCount{
-			Activity:        activity,
-			SubmissionCount: count,
-		})
-	}
-
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, activities)
 }
 
-func getActivity(c *gin.Context) {
-	activityID := c.Param("id")
+func (h *ActivityHandler) GetByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
 
-	var activity Activity
-	if err := db.First(&activity, activityID).Error; err != nil {
+	activity, err := h.activityService.GetByID(uint(id))
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 		return
 	}
@@ -69,31 +70,14 @@ func getActivity(c *gin.Context) {
 	c.JSON(http.StatusOK, activity)
 }
 
-func getSubmissions(c *gin.Context) {
-	activityID := c.Param("id")
-
-	var submissions []Submission
-	db.Where("activity_id = ?", activityID).Order("created_at desc").Find(&submissions)
-
-	c.JSON(http.StatusOK, submissions)
-}
-
-func joinActivity(c *gin.Context) {
+func (h *ActivityHandler) Join(c *gin.Context) {
 	inviteToken := c.Param("inviteToken")
 
-	var activity Activity
-	if err := db.Where("invite_token = ?", inviteToken).First(&activity).Error; err != nil {
+	activity, student, err := h.activityService.JoinActivity(inviteToken)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invalid or expired invite link"})
 		return
 	}
-
-	// Create anonymous student if not logged in
-	student := User{
-		Email: generateAnonymousEmail(),
-		Name:  "Anonymous Student",
-		Role:  "student",
-	}
-	db.Create(&student)
 
 	c.JSON(http.StatusOK, gin.H{
 		"activity": activity,

@@ -1,77 +1,68 @@
-package handlers
+package handler
 
 import (
-	"encoding/json"
 	"net/http"
+	"strconv"
+
+	"dalivim/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-func receiveTelemetry(c *gin.Context) {
-	var req struct {
-		ActivityID uint                   `json:"activityId"`
-		StudentID  uint                   `json:"studentId"`
-		Timestamp  int64                  `json:"timestamp"`
-		IsFinal    bool                   `json:"isFinal"`
-		Code       string                 `json:"code"`
-		Features   map[string]interface{} `json:"features"`
-		RawEvents  map[string]interface{} `json:"rawEvents"`
-	}
+type TelemetryHandler struct {
+	telemetryService service.TelemetryService
+}
 
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+func NewTelemetryHandler(telemetryService service.TelemetryService) *TelemetryHandler {
+	return &TelemetryHandler{telemetryService: telemetryService}
+}
+
+type TelemetryRequest struct {
+	ActivityID uint                   `json:"activityId" binding:"required"`
+	StudentID  uint                   `json:"studentId" binding:"required"`
+	Timestamp  int64                  `json:"timestamp" binding:"required"`
+	IsFinal    bool                   `json:"isFinal"`
+	Code       string                 `json:"code"`
+	Features   map[string]interface{} `json:"features" binding:"required"`
+	RawEvents  map[string]interface{} `json:"rawEvents" binding:"required"`
+}
+
+func (h *TelemetryHandler) Process(c *gin.Context) {
+	var req TelemetryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Analyze behavior
-	analysis := analyzeBehavior(req.Features)
-
-	// Save telemetry data
-	telemetryJSON, _ := json.Marshal(req.Features)
-	eventsJSON, _ := json.Marshal(req.RawEvents)
-
-	telemetry := TelemetryData{
-		ActivityID: req.ActivityID,
-		StudentID:  req.StudentID,
-		Timestamp:  req.Timestamp,
-		IsFinal:    req.IsFinal,
-		Features:   string(telemetryJSON),
-		RawEvents:  string(eventsJSON),
-	}
-	db.Create(&telemetry)
-
-	// If final submission, create submission record
-	if req.IsFinal {
-		var student User
-		db.First(&student, req.StudentID)
-
-		pasteEventsJSON, _ := json.Marshal(req.RawEvents["pasteEvents"])
-
-		submission := Submission{
-			ActivityID:           req.ActivityID,
-			StudentID:            req.StudentID,
-			StudentName:          student.Name,
-			StudentEmail:         student.Email,
-			Code:                 req.Code,
-			AuthorshipScore:      analysis.AuthorshipScore,
-			Confidence:           analysis.Confidence,
-			Signals:              analysis.Signals,
-			AvgKeystrokeInterval: getFloat(req.Features, "avgKeystrokeInterval"),
-			StdKeystrokeInterval: getFloat(req.Features, "stdKeystrokeInterval"),
-			PasteEvents:          getInt(req.Features, "pasteEvents"),
-			PasteCharRatio:       getFloat(req.Features, "pasteCharRatio"),
-			DeleteRatio:          getFloat(req.Features, "deleteRatio"),
-			FocusLossCount:       getInt(req.Features, "focusLossCount"),
-			LinearEditingScore:   getFloat(req.Features, "linearEditingScore"),
-			Burstiness:           getFloat(req.Features, "burstiness"),
-			TimeToFirstRun:       getFloat(req.Features, "timeToFirstRun"),
-			ExecutionCount:       getInt(req.Features, "executionCount"),
-			TotalTime:            getFloat(req.Features, "totalTime"),
-			KeystrokeCount:       getInt(req.Features, "totalKeystrokes"),
-			PasteEventDetails:    string(pasteEventsJSON),
-		}
-		db.Create(&submission)
+	analysis, err := h.telemetryService.ProcessTelemetry(
+		req.ActivityID,
+		req.StudentID,
+		req.Timestamp,
+		req.IsFinal,
+		req.Code,
+		req.Features,
+		req.RawEvents,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, analysis)
+}
+
+func (h *TelemetryHandler) GetSubmissions(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	submissions, err := h.telemetryService.GetSubmissions(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, submissions)
 }

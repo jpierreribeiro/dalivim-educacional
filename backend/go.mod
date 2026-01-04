@@ -1,4 +1,4 @@
-module github.com/yourusername/dalivim
+module dalivim
 
 go 1.21
 
