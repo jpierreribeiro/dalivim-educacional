@@ -40,9 +40,12 @@ func Connect(cfg Config) (*gorm.DB, error) {
 func Migrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&models.User{},
+		&models.Semester{},
 		&models.Activity{},
 		&models.Submission{},
 		&models.TelemetryData{},
+		&models.SimilarityDetection{},
+		&models.SimilarityCluster{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)

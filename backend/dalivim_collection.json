@@ -1,0 +1,610 @@
+{
+	"info": {
+		"_postman_id": "dalivim-educacional-complete",
+		"name": "Dalivim Educacional - API Completa",
+		"description": "Collection completa para testar o backend do Dalivim Educacional com Sistema de Semestres e Detecção de Similaridade.\n\n**Como usar:**\n1. Importe no Postman\n2. Comece por Auth → Register (Professor)\n3. Depois Auth → Login (o token é salvo automaticamente)\n4. Teste as outras rotas\n\n**Base URL:** http://localhost:8080/api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Auth",
+			"item": [
+				{
+					"name": "Register Professor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set(\"auth_token\", jsonData.token);",
+									"    pm.collectionVariables.set(\"user_id\", jsonData.user.id);",
+									"    console.log(\"✅ Token salvo: \" + jsonData.token);",
+									"    console.log(\"✅ User ID: \" + jsonData.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"professor@dalivim.com\",\n    \"password\": \"123456\",\n    \"name\": \"Prof. João Silva\",\n    \"role\": \"professor\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Registra um novo professor no sistema"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set(\"student_token\", jsonData.token);",
+									"    pm.collectionVariables.set(\"student_id\", jsonData.user.id);",
+									"    console.log(\"✅ Student Token: \" + jsonData.token);",
+									"    console.log(\"✅ Student ID: \" + jsonData.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"aluno@dalivim.com\",\n    \"password\": \"123456\",\n    \"name\": \"Maria Santos\",\n    \"role\": \"student\",\n    \"enrollmentYear\": 2024,\n    \"enrollmentPeriod\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Registra um novo aluno com informações de semestre"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set(\"auth_token\", jsonData.token);",
+									"    console.log(\"✅ Login bem-sucedido! Token: \" + jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"professor@dalivim.com\",\n    \"password\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Faz login e salva o token automaticamente"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📚 Activities",
+			"item": [
+				{
+					"name": "Create Activity",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.collectionVariables.set(\"activity_id\", jsonData.id);",
+									"    pm.collectionVariables.set(\"invite_token\", jsonData.inviteToken);",
+									"    console.log(\"✅ Activity ID: \" + jsonData.id);",
+									"    console.log(\"✅ Invite Token: \" + jsonData.inviteToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Bubble Sort\",\n    \"description\": \"Implemente o algoritmo Bubble Sort em Python\",\n    \"language\": \"python\",\n    \"timeLimit\": 60\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/activities",
+							"host": ["{{base_url}}"],
+							"path": ["activities"]
+						},
+						"description": "Cria uma nova atividade (requer autenticação de professor)"
+					},
+					"response": []
+				},
+				{
+					"name": "List My Activities",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities",
+							"host": ["{{base_url}}"],
+							"path": ["activities"]
+						},
+						"description": "Lista todas as atividades do professor logado"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Activity by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/{{activity_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "{{activity_id}}"]
+						},
+						"description": "Busca uma atividade específica por ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Join Activity (Student)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.student && jsonData.student.id) {",
+									"    pm.collectionVariables.set(\"anonymous_student_id\", jsonData.student.id);",
+									"    console.log(\"✅ Anonymous Student ID: \" + jsonData.student.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/join/{{invite_token}}",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "join", "{{invite_token}}"]
+						},
+						"description": "Aluno entra em uma atividade usando o invite token (cria usuário anônimo)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Submissions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/{{activity_id}}/submissions",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "{{activity_id}}", "submissions"]
+						},
+						"description": "Lista todas as submissões de uma atividade (professor)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📊 Telemetry",
+			"item": [
+				{
+					"name": "Send Telemetry (Intermediate)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"activityId\": {{activity_id}},\n    \"studentId\": {{anonymous_student_id}},\n    \"timestamp\": {{$timestamp}}000,\n    \"isFinal\": false,\n    \"code\": \"def bubble_sort(arr):\\n    # Em progresso...\",\n    \"features\": {\n        \"totalKeystrokes\": 45,\n        \"avgKeystrokeInterval\": 150.5,\n        \"stdKeystrokeInterval\": 50.2,\n        \"pasteEvents\": 0,\n        \"pasteCharRatio\": 0.0,\n        \"deleteRatio\": 0.15,\n        \"focusLossCount\": 2,\n        \"linearEditingScore\": 0.85,\n        \"burstiness\": 0.45,\n        \"timeToFirstRun\": 0,\n        \"executionCount\": 0,\n        \"totalTime\": 180.5\n    },\n    \"rawEvents\": {\n        \"pasteEvents\": []\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/telemetry",
+							"host": ["{{base_url}}"],
+							"path": ["telemetry"]
+						},
+						"description": "Envia telemetria intermediária (durante a atividade)"
+					},
+					"response": []
+				},
+				{
+					"name": "Send Telemetry (Final Submission)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"activityId\": {{activity_id}},\n    \"studentId\": {{anonymous_student_id}},\n    \"timestamp\": {{$timestamp}}000,\n    \"isFinal\": true,\n    \"code\": \"def bubble_sort(arr):\\n    n = len(arr)\\n    for i in range(n):\\n        for j in range(0, n-i-1):\\n            if arr[j] > arr[j+1]:\\n                arr[j], arr[j+1] = arr[j+1], arr[j]\\n    return arr\",\n    \"features\": {\n        \"totalKeystrokes\": 245,\n        \"avgKeystrokeInterval\": 145.8,\n        \"stdKeystrokeInterval\": 48.3,\n        \"pasteEvents\": 1,\n        \"pasteCharRatio\": 0.35,\n        \"deleteRatio\": 0.12,\n        \"focusLossCount\": 3,\n        \"linearEditingScore\": 0.92,\n        \"burstiness\": 0.38,\n        \"timeToFirstRun\": 420.5,\n        \"executionCount\": 2,\n        \"totalTime\": 3600.0\n    },\n    \"rawEvents\": {\n        \"pasteEvents\": [\n            {\n                \"timestamp\": {{$timestamp}}000,\n                \"length\": 150\n            }\n        ]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/telemetry",
+							"host": ["{{base_url}}"],
+							"path": ["telemetry"]
+						},
+						"description": "Envia telemetria final (submissão completa). Cria registro de Submission e calcula score de autoria."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🎓 Semesters",
+			"item": [
+				{
+					"name": "Create Semester",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.collectionVariables.set(\"semester_id\", jsonData.id);",
+									"    console.log(\"✅ Semester ID: \" + jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"year\": 2024,\n    \"period\": 1,\n    \"startDate\": \"2024-02-01T00:00:00Z\",\n    \"endDate\": \"2024-06-30T23:59:59Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/semesters",
+							"host": ["{{base_url}}"],
+							"path": ["semesters"]
+						},
+						"description": "Cria um novo semestre acadêmico (2024.1)"
+					},
+					"response": []
+				},
+				{
+					"name": "List All Semesters",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/semesters",
+							"host": ["{{base_url}}"],
+							"path": ["semesters"]
+						},
+						"description": "Lista todos os semestres cadastrados"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Semester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/semesters/active",
+							"host": ["{{base_url}}"],
+							"path": ["semesters", "active"]
+						},
+						"description": "Retorna o semestre atualmente ativo"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Student Semesters",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/semesters/update-students",
+							"host": ["{{base_url}}"],
+							"path": ["semesters", "update-students"]
+						},
+						"description": "Recalcula o semestre atual de todos os alunos (cron job manual)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔍 Similarity Detection",
+			"item": [
+				{
+					"name": "Detect Similarities",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/{{activity_id}}/detect-similarities",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "{{activity_id}}", "detect-similarities"]
+						},
+						"description": "Executa detecção de similaridade para todas as submissões de uma atividade"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Similarities",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/{{activity_id}}/similarities",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "{{activity_id}}", "similarities"]
+						},
+						"description": "Lista todas as similaridades detectadas para uma atividade"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Clusters",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/activities/{{activity_id}}/clusters",
+							"host": ["{{base_url}}"],
+							"path": ["activities", "{{activity_id}}", "clusters"]
+						},
+						"description": "Lista todos os clusters de cola detectados"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💊 Health Check",
+			"item": [
+				{
+					"name": "Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/health",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8080",
+							"path": ["health"]
+						},
+						"description": "Verifica se o servidor está rodando"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "student_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "activity_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "invite_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "student_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "anonymous_student_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "semester_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

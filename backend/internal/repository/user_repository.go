@@ -35,3 +35,19 @@ func (r *userRepository) FindByID(id uint) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *userRepository) FindAllStudents() ([]models.User, error) {
+	var users []models.User
+	err := r.db.Where("role = ?", "student").Find(&users).Error
+	return users, err
+}
+
+func (r *userRepository) FindByRole(role string) ([]models.User, error) {
+	var users []models.User
+	err := r.db.Where("role = ?", role).Find(&users).Error
+	return users, err
+}
+
+func (r *userRepository) Update(user *models.User) error {
+	return r.db.Save(user).Error
+}
